@@ -77,11 +77,10 @@ def add_noise(Ax, percent):
     return Ax + np.random.normal(0, percent * np.max(Ax), (len(Ax), 1))
 
 
-def calcNonLin(A_lin, pressure_values, LineIntScal, temp_values, theta, w_cross, AscalConstKmToCm, SpecNumLayers, SpecNumMeas ):
+def calcNonLin(A_lin, pressure_values, LineIntScal, temp_values, theta, AscalConstKmToCm, SpecNumLayers, SpecNumMeas ):
 
     ConcVal = - pressure_values.reshape(
-        (SpecNumLayers, 1)) * 1e2 * LineIntScal * AscalConstKmToCm / temp_values * theta * w_cross.reshape(
-        (SpecNumLayers, 1))
+        (SpecNumLayers, 1)) * 1e2 * LineIntScal / temp_values * theta *AscalConstKmToCm
 
 
     mask = A_lin * np.ones((SpecNumMeas, SpecNumLayers))

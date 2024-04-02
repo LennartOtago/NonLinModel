@@ -9,7 +9,7 @@ from functions import *
 from scipy import constants, optimize
 from scipy.sparse.linalg import gmres
 import matplotlib.pyplot as plt
-#import tikzplotlib
+import tikzplotlib
 plt.rcParams.update({'font.size': 18})
 import pandas as pd
 from numpy.random import uniform, normal, gamma
@@ -25,6 +25,12 @@ fraction = 1.5
 dpi = 300
 PgWidthPt = 245
 
+defBack = mpl.get_backend()
+pgf_params = { "pgf.texsystem": "pdflatex",
+    'text.usetex': True,
+    'pgf.rcfonts': False,
+'axes.labelsize': 12,  # -> axis labels
+'legend.fontsize': 12}
 
 """ for plotting histogram and averaging over lambda """
 n_bins = 20
@@ -265,7 +271,7 @@ numDensO3 =  N_A * press * 1e2 * O3 / (R * temp_values[0,:]) * 1e-6
 ''' caclutlate non-linear terms'''
 
 
-nonLin = calcNonLin(A_lin, pressure_values, LineIntScal, temp_values, theta, w_cross, AscalConstKmToCm, SpecNumLayers, SpecNumMeas )
+nonLin = calcNonLin(A_lin, pressure_values, LineIntScal, temp_values, num_mole * w_cross.reshape((SpecNumLayers,1)) * S[ind,0], AscalConstKmToCm, SpecNumLayers, SpecNumMeas )
 
 A = A_lin * A_scal.T * nonLin
 ATA = np.matmul(A.T,A)
@@ -289,7 +295,7 @@ y = np.loadtxt('NonLinDataY.txt').reshape((SpecNumMeas,1))
 
 ATy = np.matmul(A.T, y)
 
-np.savetxt('NonLinDataY.txt', y, header = 'Data y including noise', fmt = '%.15f')
+#np.savetxt('NonLinDataY.txt', y, header = 'Data y including noise', fmt = '%.15f')
 np.savetxt('NonLinForWardMatrix.txt', A, header = 'Forward Matrix A', fmt = '%.15f', delimiter= '\t')
 
 fig2, ax = plt.subplots()
@@ -298,15 +304,15 @@ plt.plot( y,tang_heights_lin)
 #ax.set_ylim([tang_heights_lin])
 plt.xlabel('Volume Mixing Ratio Ozone in ppm')
 plt.ylabel('Height in km')
-#plt.savefig('measurement.png')
-#plt.show()
+plt.savefig('measurement.png')
+plt.show()
 
 print('bla')
 
 
 
 '''give the non linear term and forward model a constant ozone Profile'''
-nonLin = calcNonLin(A_lin, pressure_values, LineIntScal, temp_values, np.mean(theta) * np.ones((SpecNumLayers,1)), w_cross, AscalConstKmToCm, SpecNumLayers, SpecNumMeas )
+nonLin = calcNonLin(A_lin, pressure_values, LineIntScal, temp_values, np.mean(num_mole * w_cross.reshape((SpecNumLayers,1)) * S[ind,0]) * np.ones((SpecNumLayers,1)), AscalConstKmToCm, SpecNumLayers, SpecNumMeas )
 
 A = A_lin * A_scal.T * nonLin
 ATA = np.matmul(A.T,A)
@@ -351,23 +357,50 @@ minimum = optimize.fmin(MinLogMargPost, [1/(np.max(Ax) * 0.01)**2,1/(np.mean(var
 
 lam0 = minimum[1]
 print(minimum)
-
+##
 """prepare f and g for sampling"""
-#taylor series arounf lam_0
+lam= np.logspace(-5,15,500)
+f_func = np.zeros(len(lam))
+g_func = np.zeros(len(lam))
+
+
+
+for j in range(len(lam)):
+
+    B = (ATA + lam[j] * L)
+
+    B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
+    #print(exitCode)
+
+    CheckB_inv_ATy = np.matmul(B, B_inv_A_trans_y)
+    if np.linalg.norm(ATy[0::, 0]- CheckB_inv_ATy)/np.linalg.norm(ATy[0::, 0])<=tol:
+        f_func[j] = f(ATy, y, B_inv_A_trans_y)
+    else:
+        f_func[j] = np.nan
+
+    g_func[j] = g(A, L, lam[j])
+
+
+np.savetxt('f_func.txt', f_func, fmt = '%.15f')
+np.savetxt('g_func.txt', g_func, fmt = '%.15f')
+np.savetxt('lam.txt', lam, fmt = '%.15f')
+
+##
+""" taylor series around lam_0 """
 
 B = (ATA + lam0 * L)
 
-B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
+B_inv_A_trans_y0, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
 #print(exitCode)
 
-CheckB_inv_ATy = np.matmul(B, B_inv_A_trans_y)
+CheckB_inv_ATy = np.matmul(B, B_inv_A_trans_y0)
 
 
 
-B_inv_L = np.zeros(np.shape(B))
+B_inv_L0 = np.zeros(np.shape(B))
 
 for i in range(len(B)):
-    B_inv_L[:, i], exitCode = gmres(B, L[:, i], tol=tol, restart=25)
+    B_inv_L0[:, i], exitCode = gmres(B, L[:, i], tol=tol, restart=25)
     if exitCode != 0:
         print('B_inv_L ' + str(exitCode))
 
@@ -375,26 +408,29 @@ for i in range(len(B)):
 #CheckB_inv_L = np.matmul(B, B_inv_L)
 #print(np.linalg.norm(L- CheckB_inv_L)/np.linalg.norm(L)<relative_tol_L)
 
-B_inv_L_2 = np.matmul(B_inv_L, B_inv_L)
-B_inv_L_3 = np.matmul(B_inv_L_2, B_inv_L)
+B_inv_L_2 = np.matmul(B_inv_L0, B_inv_L0)
+B_inv_L_3 = np.matmul(B_inv_L_2, B_inv_L0)
 B_inv_L_4 = np.matmul(B_inv_L_2, B_inv_L_2)
-B_inv_L_5 = np.matmul(B_inv_L_4, B_inv_L)
+B_inv_L_5 = np.matmul(B_inv_L_4, B_inv_L0)
 B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
 
 
-f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y)
-f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y)
-f_0_3 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y)
-f_0_4 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y)
+f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L0), B_inv_A_trans_y0)
+f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+f_0_3 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
+f_0_4 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
 #f_0_5 = 120 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y)
 
 
-g_0_1 = np.trace(B_inv_L)
+g_0_1 = np.trace(B_inv_L0)
 g_0_2 = -1 / 2 * np.trace(B_inv_L_2)
 g_0_3 = 1 /6 * np.trace(B_inv_L_3)
 g_0_4 = -1 /24 * np.trace(B_inv_L_4)
 g_0_5 = 0#1 /120 * np.trace(B_inv_L_5)
 g_0_6 = 0#1 /720 * np.trace(B_inv_L_6)
+
+
+
 
 ##
 
@@ -433,7 +469,7 @@ f_new = f(ATy, y,  B_inv_A_trans_y0)
 #g_old = g(A, L,  lambdas[0])
 
 def MHwG(number_samples, burnIn, lambda0, gamma0):
-    wLam = 3e2#7e1
+    wLam = 0.7e3#7e1
 
     alphaG = 1
     alphaD = 1
@@ -571,12 +607,120 @@ plt.savefig('HistoResults.png')
 plt.show()
 
 print('bla')
+
+##
+f_mode = f(ATy, y, B_inv_A_trans_y0)
+BinHist = 200#n_bins
+lambHist, lambBinEdges = np.histogram(new_lamb, bins= BinHist, density =True)
+
+mpl.use(defBack)
+mpl.rcParams.update(mpl.rcParamsDefault)
+plt.rcParams.update({'font.size': 12})
+fCol = [0, 144/255, 178/255]
+gCol = [230/255, 159/255, 0]
+#gCol = [240/255, 228/255, 66/255]
+#gCol = [86/255, 180/255, 233/255]
+gmresCol = [204/255, 121/255, 167/255]
+fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))#, dpi = dpi)
+
+axs.plot(lam,f_func, color = fCol, zorder = 2, linestyle=  'dotted')
+
+axs.scatter(minimum[1],f_mode, color = gmresCol, zorder=0, marker = 's')#
+
+axs.set_yscale('log')
+axs.set_xlabel('$\lambda$')
+axs.set_ylabel('$f(\lambda)$')#, color = fCol)
+axs.tick_params(axis = 'y',  colors=fCol, which = 'both')
+
+ax2 = axs.twinx() # ax1 and ax2 share y-axis
+ax2.plot(lam,g_func, color = gCol, zorder = 2, linestyle=  'dashed')
+ax2.scatter(minimum[1],g(A, L, minimum[1]), color = gmresCol, zorder=0, marker = 's')
+ax2.set_ylabel('$g(\lambda)$')#,color = gCol)
+ax2.tick_params(axis = 'y', colors= gCol)
+axs.set_xscale('log')
+axins = axs.inset_axes([0.05,0.5,0.4,0.45])
+
+axins.plot(lam,f_func, color = fCol, zorder=3, linestyle=  'dotted', linewidth = 3)
+delta_lam = lambBinEdges - minimum[1]
+axins.plot(lambBinEdges,f_tayl(delta_lam, f_mode, f_0_1, f_0_2, f_0_3, f_0_4), color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
+axs.plot(lambBinEdges,f_tayl(delta_lam, f_mode, f_0_1, f_0_2, f_0_3, f_0_4), color = 'k', linewidth = 1, zorder = 2, label = 'Taylor series' )
+
+axins.scatter(minimum[1],f_mode, color = gmresCol, s= 95, zorder=0, marker = 's', label = r'\texttt{optimize.fmin()}')
+
+
+x_val = axins.get_xticks()
+axins.tick_params(axis='y', which='both',  left=False, labelleft=False)
+
+axins.tick_params(axis='x', which  = 'both', labelbottom=False )
+#axins.set_xticks([lam0])
+#axins.set_xticklabels( [])#,labels=['','','','lam0'])
+#axins.set_xticklabels(['lam0'])
+
+
+#axins.tick_params(axis='y', which='both', length=0)
+axins.set_xlim(min(new_lamb),max(new_lamb))
+axins.set_ylim(5e8,9e8)
+axins.set_xlabel('$\lambda$')
+axins.set_xlim([np.mean(lambdas) - np.sqrt(np.var(lambdas)), 1.5*np.mean(lambdas) + np.sqrt(np.var(lambdas))])# apply the x-limits
+axins.set_yscale('log')
+axins.set_xscale('log')
+axin2 = axins.twinx()
+# # axin2.tick_params(axis='x',which  = 'minor', labelbottom=False)
+# #
+# # axin2.set_xticks( [lam0])#,labels=['','','','lam0'])
+# # axin2.set_xticklabels(['lam0'])
+#
+#
+axin2.spines['top'].set_visible(False)
+axin2.spines['right'].set_visible(False)
+axin2.spines['bottom'].set_visible(False)
+axin2.spines['left'].set_visible(False)
+axin2.tick_params(axis = 'y', which = 'both',labelright=False, right=False)
+axin2.tick_params(axis='y', which='both', length=0)
+axin2.plot(lam,g_func, color = gCol, zorder=3, linestyle=  'dashed', linewidth = 3)
+
+axin2.plot(lambBinEdges, g_tayl(delta_lam, g(A, L, minimum[1]) ,g_0_1, g_0_2, g_0_3, g_0_4,g_0_5, g_0_6), color = 'k', linewidth = 1, zorder = 2 )
+axin2.scatter(minimum[1],g(A, L, minimum[1]), color = gmresCol, s=95, zorder=0, marker = 's')
+axin2.set_ylim(360,460)
+axin2.set_xlim(min(new_lamb),max(new_lamb))
+axin2.set_xscale('log')
+
+ax2.plot(lambBinEdges, g_tayl(delta_lam, g(A, L, minimum[1]) ,g_0_1, g_0_2, g_0_3, g_0_4,g_0_5, g_0_6), color = 'k', linewidth = 1, zorder = 1)
+
+lines, lab0 = axins.get_legend_handles_labels()
+
+axs.spines['right'].set_visible(False)
+
+axs.spines['left'].set_color('k')
+ax2.spines['top'].set_visible(False)
+ax2.spines['right'].set_color('k')
+
+ax2.spines['bottom'].set_visible(False)
+ax2.spines['left'].set_visible(False)
+
+
+
+
+#plt.savefig('f_and_g_paper.png',bbox_inches='tight')
+plt.show()
+#for legend
+# tikzplotlib_fix_ncols(fig)
+tikzplotlib.save("f_and_g_paper.png")
+
+##
+plt.close()
+mpl.use('pgf')
+mpl.rcParams.update(pgf_params)
+fig.savefig('f_and_g_paper.pgf', bbox_inches='tight', dpi = 300)
+
+
 ##
 '''find ozone profile and update non Linear A matrix'''
 
 #draw paramter samples
-paraSamp = 200#n_bins
+paraSamp = 100#n_bins
 Results = np.zeros((paraSamp,len(theta)))
+relError = np.zeros((paraSamp,1))
 NormRes = np.zeros(paraSamp)
 xTLxRes = np.zeros(paraSamp)
 SetGammas = new_gam[np.random.randint(low=0, high=len(new_gam), size=paraSamp)]
@@ -606,9 +750,12 @@ for p in range(paraSamp):
     NormRes[p] = np.linalg.norm( np.matmul(A,B_inv_A_trans_y) - y[0::,0])
     xTLxRes[p] = np.sqrt(np.matmul(np.matmul(B_inv_A_trans_y.T, L), B_inv_A_trans_y))
 
+    relError[p] = np.linalg.norm(B_inv_A_trans_y -  Results[p-1, :] ) /np.linalg.norm( Results[p-1, :])
+    print('Relative Error for ' + str(p) + 'th sample: ' + str(relError[p]))
     #update forward model matrix
-    nonLin = calcNonLin(A_lin, pressure_values, LineIntScal, temp_values, B_inv_A_trans_y.reshape((SpecNumLayers,1)), w_cross, AscalConstKmToCm,
+    nonLin = calcNonLin(A_lin, pressure_values, LineIntScal, temp_values, B_inv_A_trans_y.reshape((SpecNumLayers,1))/ scalingConst, AscalConstKmToCm,
                         SpecNumLayers, SpecNumMeas)
+
 
     A = A_lin * A_scal.T * nonLin
     ATA = np.matmul(A.T,A)
@@ -616,6 +763,13 @@ for p in range(paraSamp):
 
 elapsedX = time.time() - startTimeX
 print('Time to solve for x ' + str(elapsedX/paraSamp))
+##
+mpl.use(defBack)
+fig, ax = plt.subplots(figsize=set_size(245, fraction=fraction))
+#ax.plot(range(paraSamp), NormRes)
+ax.scatter( NormRes[:100], xTLxRes[:100])
+#ax.plot(range(paraSamp), relError)
+plt.show()
 
 ##
 plt.close('all')
@@ -625,7 +779,7 @@ x = np.mean(Results,0 )/ (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
 #xerr = np.sqrt(np.var(Results,0)/(num_mole *S[ind,0]  * f_broad * 1e-4 * scalingConst)**2)/2
 #XOPT = x_opt /(num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
 #MargX = MargInteg/ (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
-#mpl.use(defBack)
+mpl.use(defBack)
 #mpl.use("png") bbox_inches='tight'
 mpl.rcParams.update(mpl.rcParamsDefault)
 plt.rcParams.update({'font.size': 12})
@@ -640,7 +794,7 @@ ax1.plot(VMR_O3,height_values,marker = 'o', color = "#009E73", label = 'true pro
 
 # edgecolor = [0, 158/255, 115/255]
 #line1 = ax1.plot(VMR_O3,height_values, color = [0, 158/255, 115/255], linewidth = 10, zorder=0)
-for n in range(1,20):#,paraSamp,15):
+for n in range(0,10):#,paraSamp,15):
     Sol = Results[n, :] / (num_mole * S[ind, 0] * f_broad * 1e-4 * scalingConst)
     ax1.plot(Sol,height_values,marker= '.',color = 'k',label = 'posterior samples ', zorder = 0, linewidth = 0.5)
 #$\mathbf{x} \sim \pi(\mathbf{x} |\mathbf{y}, \mathbf{\theta} ) $' , markerfacecolor = 'none'
@@ -788,3 +942,308 @@ plt.show()
 
 
 print('bla')
+
+
+
+##
+""" do MWG again with updated forward model"""
+# fig3, ax2 = plt.subplots(figsize=set_size(245, fraction=fraction))
+# Sol = np.mean(Results,0)/ (num_mole * S[ind, 0] * f_broad * 1e-4 * scalingConst)
+#
+# ax2.plot(Sol, height_values, marker='.', zorder=0, linewidth=0.5)
+#
+# fig3.show()
+# ##
+#
+# new_w_cross = Sol * f_broad * 1e-4
+# nonLin = calcNonLin(A_lin, pressure_values, LineIntScal, temp_values, np.mean(num_mole * new_w_cross.reshape((SpecNumLayers,1)) * S[ind,0]) * np.ones((SpecNumLayers,1)), AscalConstKmToCm, SpecNumLayers, SpecNumMeas )
+#
+# A = A_lin * A_scal.T * nonLin
+# ATA = np.matmul(A.T,A)
+# ATy = np.matmul(A.T, y)
+#
+#
+# Au, As, Avh = np.linalg.svd(A)
+# cond_A =  np.max(A_lins)/np.min(As)
+# print("normal: " + str(orderOfMagnitude(cond_A)))
+#
+# ATAu, ATAs, ATAvh = np.linalg.svd(ATA)
+# cond_ATA = np.max(ATAs)/np.min(ATAs)
+# print("Condition Number A^T A: " + str(orderOfMagnitude(cond_ATA)))
+# #theta[0] = 0
+# #theta[-1] = 0
+# #Ax = np.matmul(A, theta)
+#
+# #convolve measurements and add noise
+# #y = add_noise(Ax, 0.01)
+# #y[y<=0] = 0
+#
+# #y = np.loadtxt('NonLinDataY.txt').reshape((SpecNumMeas,1))
+#
+#
+# #ATy = np.matmul(A.T, y)
+#
+#
+# ##
+# """start the mtc algo with first guesses of noise and lumping const delta"""
+#
+#
+# vari = np.zeros((len(theta)-2,1))
+#
+# for j in range(1,len(theta)-1):
+#     vari[j-1] = np.var([theta[j-1],theta[j],theta[j+1]])
+#
+# #find minimum for first guesses
+# '''params[1] = delta
+# params[0] = gamma'''
+# def MinLogMargPost(params):#, coeff):
+#
+#     # gamma = params[0]
+#     # delta = params[1]
+#     gamma = params[0]
+#     lamb = params[1]
+#     if lamb < 0  or gamma < 0:
+#         return np.nan
+#
+#     n = SpecNumLayers
+#     m = SpecNumMeas
+#
+#     Bp = ATA + lamb * L
+#
+#
+#     B_inv_A_trans_y, exitCode = gmres(Bp, ATy[0::, 0], tol=tol, restart=25)
+#     if exitCode != 0:
+#         print(exitCode)
+#
+#     G = g(A, L,  lamb)
+#     F = f(ATy, y,  B_inv_A_trans_y)
+#
+#     return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gamma) + 0.5 * G + 0.5 * gamma * F +  ( betaD *  lamb * gamma + betaG *gamma)
+#
+# #minimum = optimize.fmin(MargPostU, [5e-5,0.5])
+# minimum = optimize.fmin(MinLogMargPost, [1/(np.max(Ax) * 0.01)**2,1/(np.mean(vari))*(np.max(Ax) * 0.01)**2])
+#
+# lam0 = minimum[1]
+# print(minimum)
+#
+#
+# ##
+# """ taylor series around lam_0 """
+#
+# B = (ATA + lam0 * L)
+#
+# B_inv_A_trans_y0, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
+# #print(exitCode)
+#
+# CheckB_inv_ATy = np.matmul(B, B_inv_A_trans_y0)
+#
+#
+#
+# B_inv_L0 = np.zeros(np.shape(B))
+#
+# for i in range(len(B)):
+#     B_inv_L0[:, i], exitCode = gmres(B, L[:, i], tol=tol, restart=25)
+#     if exitCode != 0:
+#         print('B_inv_L ' + str(exitCode))
+#
+# #relative_tol_L = tol
+# #CheckB_inv_L = np.matmul(B, B_inv_L)
+# #print(np.linalg.norm(L- CheckB_inv_L)/np.linalg.norm(L)<relative_tol_L)
+#
+# B_inv_L_2 = np.matmul(B_inv_L0, B_inv_L0)
+# B_inv_L_3 = np.matmul(B_inv_L_2, B_inv_L0)
+# B_inv_L_4 = np.matmul(B_inv_L_2, B_inv_L_2)
+# B_inv_L_5 = np.matmul(B_inv_L_4, B_inv_L0)
+# B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
+#
+#
+# f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L0), B_inv_A_trans_y0)
+# f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+# f_0_3 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
+# f_0_4 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
+# #f_0_5 = 120 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y)
+#
+#
+# g_0_1 = np.trace(B_inv_L0)
+# g_0_2 = -1 / 2 * np.trace(B_inv_L_2)
+# g_0_3 = 1 /6 * np.trace(B_inv_L_3)
+# g_0_4 = -1 /24 * np.trace(B_inv_L_4)
+# g_0_5 = 0#1 /120 * np.trace(B_inv_L_5)
+# g_0_6 = 0#1 /720 * np.trace(B_inv_L_6)
+#
+#
+# ##
+#
+# '''do the sampling'''
+# number_samples = 10000
+#
+#
+# #inintialize sample
+# gamma0 = minimum[0] #3.7e-5#1/np.var(y) * 1e1 #(0.01* np.max(Ax))1e-5#
+# #0.275#1/(2*np.mean(vari))0.1#
+# lambda0 = minimum[1]#deltas[0]/gammas[0]
+# #deltas[0] =  minimum[1] * minimum[0]
+#
+# B = (ATA + lambda0 * L)
+#
+# B_inv_A_trans_y0, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
+# if exitCode != 0:
+#     print(exitCode)
+#
+# Bu, Bs, Bvh = np.linalg.svd(B)
+# cond_B =  np.max(Bs)/np.min(Bs)
+# print("Condition number B: " + str(orderOfMagnitude(cond_B)))
+#
+#
+#
+# #wgam = 1e-5
+# #wdelt = 1e-1
+#
+# alphaG = 1
+# alphaD = 1
+# rate = f(ATy, y, B_inv_A_trans_y0) / 2 + betaG + betaD * lambda0
+# # draw gamma with a gibs step
+# shape = SpecNumMeas/2 + alphaD + alphaG
+#
+# f_new = f(ATy, y,  B_inv_A_trans_y0)
+# #g_old = g(A, L,  lambdas[0])
+#
+# def MHwG(number_samples, burnIn, lambda0, gamma0):
+#     wLam = 0.7e3#7e1
+#
+#     alphaG = 1
+#     alphaD = 1
+#     k = 0
+#
+#     gammas = np.zeros(number_samples + burnIn)
+#     #deltas = np.zeros(number_samples + burnIn)
+#     lambdas = np.zeros(number_samples + burnIn)
+#
+#     gammas[0] = gamma0
+#     lambdas[0] = lambda0
+#
+#     B = (ATA + lambda0 * L)
+#     B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], x0=B_inv_A_trans_y0, tol=tol)
+#
+#     #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
+#     if exitCode != 0:
+#         print(exitCode)
+#
+#     shape = SpecNumMeas / 2 + alphaD + alphaG
+#     rate = f(ATy, y, B_inv_A_trans_y) / 2 + betaG + betaD * lambda0
+#
+#
+#     for t in range(number_samples + burnIn-1):
+#         #print(t)
+#
+#         # # draw new lambda
+#         lam_p = normal(lambdas[t], wLam)
+#
+#         while lam_p < 0:
+#                 lam_p = normal(lambdas[t], wLam)
+#
+#         delta_lam = lam_p - lambdas[t]
+#         # B = (ATA + lam_p * L)
+#         # B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
+#         # if exitCode != 0:
+#         #     print(exitCode)
+#
+#
+#         # f_new = f(ATy, y,  B_inv_A_trans_y)
+#         # g_new = g(A, L,  lam_p)
+#         #
+#         # delta_f = f_new - f_old
+#         # delta_g = g_new - g_old
+#
+#         delta_f = f_0_1 * delta_lam + f_0_2 * delta_lam**2 + f_0_3 * delta_lam**3
+#         delta_g = g_0_1 * delta_lam + g_0_2 * delta_lam**2 + g_0_3 * delta_lam**3
+#
+#         log_MH_ratio = ((SpecNumLayers)/ 2) * (np.log(lam_p) - np.log(lambdas[t])) - 0.5 * (delta_g + gammas[t] * delta_f) - betaD * gammas[t] * delta_lam
+#
+#         #accept or rejeict new lam_p
+#         u = uniform()
+#         if np.log(u) <= log_MH_ratio:
+#         #accept
+#             k = k + 1
+#             lambdas[t + 1] = lam_p
+#             #only calc when lambda is updated
+#
+#             B = (ATA + lam_p * L)
+#             B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], x0= B_inv_A_trans_y0,tol=tol, restart=25)
+#             #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
+#
+#             # if exitCode != 0:
+#             #         print(exitCode)
+#
+#             f_new = f(ATy, y,  B_inv_A_trans_y)
+#             #g_old = np.copy(g_new)
+#             rate = f_new/2 + betaG + betaD * lam_p#lambdas[t+1]
+#
+#         else:
+#             #rejcet
+#             lambdas[t + 1] = np.copy(lambdas[t])
+#
+#
+#
+#
+#         gammas[t+1] = np.random.gamma(shape = shape, scale = 1/rate)
+#
+#         #deltas[t+1] = lambdas[t+1] * gammas[t+1]
+#
+#     return lambdas, gammas,k
+#
+#
+#
+# startTime = time.time()
+# sec_lambdas ,sec_gammas, sec_k = MHwG(number_samples, burnIn, lambda0, gamma0)
+# elapsed = time.time() - startTime
+# print('MTC Done in ' + str(elapsed) + ' s')
+#
+#
+#
+# print('acceptance ratio: ' + str(k/(number_samples+burnIn)))
+# sec_deltas = sec_lambdas * sec_gammas
+# np.savetxt('samples.txt', np.vstack((sec_gammas[burnIn::], sec_deltas[burnIn::], sec_lambdas[burnIn::])).T, header = 'gammas \t deltas \t lambdas \n Acceptance Ratio: ' + str(sec_k/number_samples) + '\n Elapsed Time: ' + str(elapsed), fmt = '%.15f \t %.15f \t %.15f')
+#
+# #delt_aav, delt_diff, delt_ddiff, delt_itau, delt_itau_diff, delt_itau_aav, delt_acorrn = uWerr(deltas, acorr=None, s_tau=1.5, fast_threshold=5000)
+#
+#
+# eng = matlab.engine.start_matlab()
+# eng.Run_Autocorr_Ana_MTC(nargout=0)
+# eng.quit()
+#
+#
+# AutoCorrData = np.loadtxt("auto_corr_dat.txt", skiprows=3, dtype='float')
+# #IntAutoLam, IntAutoGam , IntAutoDelt = np.loadtxt("auto_corr_dat.txt",userow = 1, skiprows=1, dtype='float'
+#
+# with open("auto_corr_dat.txt") as fID:
+#     for n, line in enumerate(fID):
+#        if n == 1:
+#             IntAutoDelt, IntAutoGam, IntAutoLam = [float(IAuto) for IAuto in line.split()]
+#             break
+#
+#
+#
+# #refine according to autocorrelation time
+# new_sec_lamb = sec_lambdas[burnIn::math.ceil(IntAutoLam)]
+# #SetLambda = new_lamb[np.random.randint(low=0, high=len(new_lamb), size=1)]
+# new_sec_gam = sec_gammas[burnIn::math.ceil(IntAutoGam)]
+# #SetGamma = new_gam[np.random.randint(low = 0,high =len(new_gam),size =1)]
+# new_sec_delt = sec_deltas[burnIn::math.ceil(IntAutoDelt)]
+# #SetDelta = new_delt[np.random.randint(low = 0,high =len(new_delt),size =1)]
+#
+# fig, axs = plt.subplots(3, 1,tight_layout=True)
+# # We can set the number of bins with the *bins* keyword argument.
+# axs[0].hist(new_sec_gam,bins=n_bins, color = 'k')#int(n_bins/math.ceil(IntAutoGam)))
+# #axs[0].set_title(str(len(new_gam)) + ' effective $\gamma$ samples')
+# axs[0].set_title(str(len(new_sec_gam)) + r' $\gamma$ samples, the noise precision')
+# axs[1].hist(new_sec_delt,bins=n_bins, color = 'k')#int(n_bins/math.ceil(IntAutoDelt)))
+# axs[1].set_title(str(len(new_sec_delt)) + ' $\delta$ samples, the prior precision')
+# axs[2].hist(new_sec_lamb,bins=n_bins, color = 'k')#10)
+# #axs[2].xaxis.set_major_formatter(scientific_formatter)
+# #axs[2].set_title(str(len(new_lamb)) + ' effective $\lambda =\delta / \gamma$ samples')
+# axs[2].set_title(str(len(new_sec_lamb)) + ' $\lambda$ samples, the regularization parameter')
+# plt.savefig('sec_HistoResults.png')
+# plt.show()
+#
+# print('bla')
