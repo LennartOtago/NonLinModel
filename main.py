@@ -3,18 +3,19 @@ import matplotlib as mpl
 #from importetFunctions import *
 import time
 import pickle as pl
+import tikzplotlib
 import matlab.engine
 from functions import *
 #from errors import *
 from scipy import constants, optimize
 from scipy.sparse.linalg import gmres
 import matplotlib.pyplot as plt
-import tikzplotlib
+
 plt.rcParams.update({'font.size': 18})
 import pandas as pd
 from numpy.random import uniform, normal, gamma
 import scipy as scy
-from matplotlib.ticker import FuncFormatter
+#from matplotlib.ticker import FuncFormatter
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
 
 #mpl.rc('text.latex', preamble=r"\boldmath")
@@ -699,13 +700,13 @@ ax2.spines['bottom'].set_visible(False)
 ax2.spines['left'].set_visible(False)
 
 
+#tikzplotlib.save("f_and_g_paper.tex")
 
-
-#plt.savefig('f_and_g_paper.png',bbox_inches='tight')
+plt.savefig('f_and_g_paper.png',bbox_inches='tight')
 plt.show()
 #for legend
 # tikzplotlib_fix_ncols(fig)
-tikzplotlib.save("f_and_g_paper.png")
+#
 
 ##
 plt.close()
@@ -863,10 +864,6 @@ ax1.plot(x, height_values, marker='.', color='k', label='$x_0$', zorder=0, linew
 
 # edgecolor = [0, 158/255, 115/255]
 #line1 = ax1.plot(VMR_O3,height_values, color = [0, 158/255, 115/255], linewidth = 10, zorder=0)
-for n in range(0,10):#,paraSamp,15):
-    Sol = Results[n, :] / (num_mole * S[ind, 0] * f_broad * 1e-4 * scalingConst)
-    ax1.plot(Sol,height_values,marker= '.',label = '$x_{'+str(n+1)+'}$', zorder = 0, linewidth = 0.5)
-
 
 ax1.set_ylim([heights[minInd-1], heights[maxInd+1]])
 
@@ -882,6 +879,78 @@ ax1.legend()
 fig3.savefig('NonLinRes.png')
 
 plt.show()
+
+
+###
+plt.close('all')
+
+mpl.rcParams['text.usetex'] = True
+#mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
+def tikzplotlib_fix_ncols(obj):
+    """
+    workaround for matplotlib 3.6 renamed legend's _ncol to _ncols, which breaks tikzplotlib
+    """
+    if hasattr(obj, "_ncols"):
+        obj._ncol = obj._ncols
+    for child in obj.get_children():
+        tikzplotlib_fix_ncols(child)
+
+
+DatCol =  'gray' # 'k'"#332288"#"#009E73"
+ResCol = "#1E88E5"#"#0072B2"
+TrueCol = 'k'#'limegreen'
+x = np.mean(theta) * np.ones((SpecNumLayers,1)) / (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
+
+# mpl.use(defBack)
+# mpl.rcParams.update(mpl.rcParamsDefault)
+# plt.rcParams.update({'font.size': 10})
+# plt.rcParams["font.serif"] = "cmr"
+fig, ax2 = plt.subplots(figsize=set_size(245, fraction=fraction))
+# ax1 and ax2 share y-axis
+line3 = ax2.scatter(y, tang_heights_lin, label = r'data', zorder = 0, marker = '*', color =DatCol )#,linewidth = 5
+
+ax1 = ax2.twiny()
+#ax1.scatter(VMR_O3,height_values,marker = 'o', facecolor = 'None', color = "#009E73", label = 'true profile', zorder=1, s =12)#,linewidth = 5)
+ax1.plot(VMR_O3,height_values,marker = 'o',markerfacecolor = 'None', color = TrueCol , label = 'true profile', zorder=0 ,linewidth = 1.5, markersize =9)
+
+
+for n in range(0,4):#,paraSamp,15):
+    Sol = Results[n, :] / (num_mole * S[ind, 0] * f_broad * 1e-4 * scalingConst)
+    ax1.plot(Sol,height_values,marker= '+',label = '$x_{'+str(n+1)+'}$', zorder = 1, linewidth = 0.5, markersize = 5)
+    #color = ResCol
+#line5 = ax1.plot(x_opt/(num_mole * S[ind,0] * f_broad * 1e-4 * scalingConst),height_values, color = 'crimson', linewidth = 7, label = 'reg. sol.', zorder=1)
+
+ax1.set_xlabel(r'Ozone volume mixing ratio ')
+#multicolor_ylabel(ax1,('(Tangent)','Height in km'),('k', dataCol),axis='y')
+ax2.set_ylabel('(Tangent) Height in km')
+handles, labels = ax1.get_legend_handles_labels()
+handles2, labels2 = ax2.get_legend_handles_labels()
+# Handles = [handles[0], handles[1], handles[2]]
+# Labels =  [labels[0], labels[1], labels[2]]
+# LegendVertical(ax1, Handles, Labels, 90, XPad=-45, YPad=12)
+
+#legend = ax1.legend(handles = [handles[-3], handles2[0], handles[0],handles[-2],handles[-1]], loc='lower right', framealpha = 0.2,fancybox=True)#, bbox_to_anchor=(1.01, 1.01), frameon =True)
+
+#plt.ylabel('Height in km')
+ax1.set_ylim([heights[minInd-1], heights[maxInd+1]])
+#ax2.set_xlim([min(y),max(y)])
+#ax1.set_xlim([min(x)-max(xerr)/2,max(x)+max(xerr)/2]) Ozone
+
+ax2.set_xlabel(r'Spectral radiance in $\frac{\text{W } \text{cm}}{\text{m}^2 \text{ sr}} $',labelpad=10)# color =dataCol,
+ax2.tick_params(colors = DatCol, axis = 'x')
+ax2.xaxis.set_ticks_position('top')
+ax2.xaxis.set_label_position('top')
+ax1.xaxis.set_ticks_position('bottom')
+ax1.xaxis.set_label_position('bottom')
+ax1.spines[:].set_visible(False)
+#ax2.spines['top'].set_color(pyTCol)
+#ax1.legend(loc = 'upper right')
+
+#plt.show()
+#import tikzplotlib
+#tikzplotlib_fix_ncols(fig)
+tikzplotlib.save("NonLinRes.pgf")
+
 
 ##
 # import plotly.graph_objects as go
