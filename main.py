@@ -593,19 +593,43 @@ new_gam = gammas[burnIn::math.ceil(IntAutoGam)]
 new_delt = deltas[burnIn::math.ceil(IntAutoDelt)]
 #SetDelta = new_delt[np.random.randint(low = 0,high =len(new_delt),size =1)]
 
-fig, axs = plt.subplots(3, 1,tight_layout=True)
+##
+mpl.use(defBack)
+mpl.rcParams.update(mpl.rcParamsDefault)
+
+
+
+fig, axs = plt.subplots(3, 1 )
 # We can set the number of bins with the *bins* keyword argument.
 axs[0].hist(new_gam,bins=n_bins, color = 'k')#int(n_bins/math.ceil(IntAutoGam)))
 #axs[0].set_title(str(len(new_gam)) + ' effective $\gamma$ samples')
 axs[0].set_title(str(len(new_gam)) + r' $\gamma$ samples, the noise precision')
+
+tikzplotlib.save("HistoResults1.tex")
+plt.close()
+fig, axs = plt.subplots(3, 1 )
 axs[1].hist(new_delt,bins=n_bins, color = 'k')#int(n_bins/math.ceil(IntAutoDelt)))
 axs[1].set_title(str(len(new_delt)) + ' $\delta$ samples, the prior precision')
+
+tikzplotlib.save("HistoResults2.tex")
+plt.close()
+
+fig, axs = plt.subplots(3, 1 )
 axs[2].hist(new_lamb,bins=n_bins, color = 'k')#10)
 #axs[2].xaxis.set_major_formatter(scientific_formatter)
 #axs[2].set_title(str(len(new_lamb)) + ' effective $\lambda =\delta / \gamma$ samples')
 axs[2].set_title(str(len(new_lamb)) + ' $\lambda$ samples, the regularization parameter')
-plt.savefig('HistoResults.png')
-plt.show()
+#plt.savefig('HistoResults.png')
+#plt.show()
+
+tikzplotlib.save("HistoResults3.tex")
+
+##
+
+
+mpl.use('pgf')
+mpl.rcParams.update(pgf_params)
+fig.savefig('HistoResults.pgf', bbox_inches='tight')
 
 print('bla')
 
@@ -702,11 +726,12 @@ ax2.spines['left'].set_visible(False)
 
 #tikzplotlib.save("f_and_g_paper.tex")
 
-plt.savefig('f_and_g_paper.png',bbox_inches='tight')
-plt.show()
+#plt.savefig('f_and_g_paper.png',bbox_inches='tight')
+#plt.show()
 #for legend
 # tikzplotlib_fix_ncols(fig)
-#
+# tikzplotlib.save("f_and_g_papers.tex")
+
 
 ##
 plt.close()
@@ -765,12 +790,12 @@ for p in range(paraSamp):
 elapsedX = time.time() - startTimeX
 print('Time to solve for x ' + str(elapsedX/paraSamp))
 ##
-mpl.use(defBack)
-fig, ax = plt.subplots(figsize=set_size(245, fraction=fraction))
-#ax.plot(range(paraSamp), NormRes)
-ax.scatter( NormRes[:100], xTLxRes[:100])
-#ax.plot(range(paraSamp), relError)
-plt.show()
+# mpl.use(defBack)
+# fig, ax = plt.subplots(figsize=set_size(245, fraction=fraction))
+# #ax.plot(range(paraSamp), NormRes)
+# ax.scatter( NormRes[:100], xTLxRes[:100])
+# #ax.plot(range(paraSamp), relError)
+# plt.show()
 
 ##
 plt.close('all')
@@ -851,7 +876,7 @@ plt.close('all')
 x = np.mean(theta) * np.ones((SpecNumLayers,1)) / (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
 
 mpl.rcParams.update(mpl.rcParamsDefault)
-plt.rcParams.update({'font.size': 12})
+plt.rcParams.update({'font.size': 10})
 plt.rcParams["font.serif"] = "cmr"
 fig3, ax2 = plt.subplots(figsize=set_size(245, fraction=fraction))
  # ax1 and ax2 share y-axis
@@ -884,7 +909,7 @@ plt.show()
 ###
 plt.close('all')
 
-mpl.rcParams['text.usetex'] = True
+#mpl.rcParams['text.usetex'] = True
 #mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
 def tikzplotlib_fix_ncols(obj):
     """
@@ -901,10 +926,10 @@ ResCol = "#1E88E5"#"#0072B2"
 TrueCol = 'k'#'limegreen'
 x = np.mean(theta) * np.ones((SpecNumLayers,1)) / (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
 
-# mpl.use(defBack)
-# mpl.rcParams.update(mpl.rcParamsDefault)
-# plt.rcParams.update({'font.size': 10})
-# plt.rcParams["font.serif"] = "cmr"
+mpl.use(defBack)
+mpl.rcParams.update(mpl.rcParamsDefault)
+plt.rcParams.update({'font.size': 10})
+plt.rcParams["font.serif"] = "cmr"
 fig, ax2 = plt.subplots(figsize=set_size(245, fraction=fraction))
 # ax1 and ax2 share y-axis
 line3 = ax2.scatter(y, tang_heights_lin, label = r'data', zorder = 0, marker = '*', color =DatCol )#,linewidth = 5
@@ -936,7 +961,7 @@ ax1.set_ylim([heights[minInd-1], heights[maxInd+1]])
 #ax2.set_xlim([min(y),max(y)])
 #ax1.set_xlim([min(x)-max(xerr)/2,max(x)+max(xerr)/2]) Ozone
 
-ax2.set_xlabel(r'Spectral radiance in $\frac{\text{W } \text{cm}}{\text{m}^2 \text{ sr}} $',labelpad=10)# color =dataCol,
+ax2.set_xlabel(r'Spectral radiance in $\frac{\text{W cm}}{\text{m}^2 \text{ sr}} $',labelpad=10)# color =dataCol,
 ax2.tick_params(colors = DatCol, axis = 'x')
 ax2.xaxis.set_ticks_position('top')
 ax2.xaxis.set_label_position('top')
@@ -946,10 +971,10 @@ ax1.spines[:].set_visible(False)
 #ax2.spines['top'].set_color(pyTCol)
 #ax1.legend(loc = 'upper right')
 
-#plt.show()
+plt.show()
 #import tikzplotlib
 #tikzplotlib_fix_ncols(fig)
-tikzplotlib.save("NonLinRes.pgf")
+#tikzplotlib.save("NonLinRes.tex")
 
 
 ##
