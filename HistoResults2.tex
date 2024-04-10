@@ -3,60 +3,39 @@
 
 \definecolor{darkgray176}{RGB}{176,176,176}
 
-\begin{groupplot}[group style={group size=1 by 3}]
-\nextgroupplot[
-tick align=outside,
-tick pos=left,
-x grid style={darkgray176},
-xmin=0, xmax=1,
-xtick style={color=black},
-y grid style={darkgray176},
-ymin=0, ymax=1,
-ytick style={color=black}
-]
-
-\nextgroupplot[
+\begin{axis}[
+height=3cm,
 tick align=outside,
 tick pos=left,
 title={5000 \(\displaystyle \delta\) samples, the prior precision},
+width=7cm,
 x grid style={darkgray176},
-xmin=2.2003263478074e-05, xmax=0.000499203703503181,
+xmin=8.23089807422919e-07, xmax=0.000245643860535995,
 xtick style={color=black},
 y grid style={darkgray176},
-ymin=0, ymax=768.6,
+ymin=0, ymax=796.95,
 ytick style={color=black}
 ]
-\draw[draw=none,fill=black] (axis cs:4.36941925701243e-05,0) rectangle (axis cs:6.53851216621746e-05,4);
-\draw[draw=none,fill=black] (axis cs:6.53851216621746e-05,0) rectangle (axis cs:8.70760507542249e-05,20);
-\draw[draw=none,fill=black] (axis cs:8.70760507542249e-05,0) rectangle (axis cs:0.000108766979846275,82);
-\draw[draw=none,fill=black] (axis cs:0.000108766979846275,0) rectangle (axis cs:0.000130457908938326,201);
-\draw[draw=none,fill=black] (axis cs:0.000130457908938326,0) rectangle (axis cs:0.000152148838030376,375);
-\draw[draw=none,fill=black] (axis cs:0.000152148838030376,0) rectangle (axis cs:0.000173839767122426,520);
-\draw[draw=none,fill=black] (axis cs:0.000173839767122426,0) rectangle (axis cs:0.000195530696214477,732);
-\draw[draw=none,fill=black] (axis cs:0.000195530696214477,0) rectangle (axis cs:0.000217221625306527,715);
-\draw[draw=none,fill=black] (axis cs:0.000217221625306527,0) rectangle (axis cs:0.000238912554398577,653);
-\draw[draw=none,fill=black] (axis cs:0.000238912554398577,0) rectangle (axis cs:0.000260603483490628,550);
-\draw[draw=none,fill=black] (axis cs:0.000260603483490627,0) rectangle (axis cs:0.000282294412582678,429);
-\draw[draw=none,fill=black] (axis cs:0.000282294412582678,0) rectangle (axis cs:0.000303985341674728,300);
-\draw[draw=none,fill=black] (axis cs:0.000303985341674728,0) rectangle (axis cs:0.000325676270766778,194);
-\draw[draw=none,fill=black] (axis cs:0.000325676270766778,0) rectangle (axis cs:0.000347367199858829,112);
-\draw[draw=none,fill=black] (axis cs:0.000347367199858829,0) rectangle (axis cs:0.000369058128950879,64);
-\draw[draw=none,fill=black] (axis cs:0.000369058128950879,0) rectangle (axis cs:0.000390749058042929,30);
-\draw[draw=none,fill=black] (axis cs:0.000390749058042929,0) rectangle (axis cs:0.00041243998713498,8);
-\draw[draw=none,fill=black] (axis cs:0.00041243998713498,0) rectangle (axis cs:0.00043413091622703,6);
-\draw[draw=none,fill=black] (axis cs:0.00043413091622703,0) rectangle (axis cs:0.00045582184531908,3);
-\draw[draw=none,fill=black] (axis cs:0.00045582184531908,0) rectangle (axis cs:0.000477512774411131,2);
-
-\nextgroupplot[
-tick align=outside,
-tick pos=left,
-x grid style={darkgray176},
-xmin=0, xmax=1,
-xtick style={color=black},
-y grid style={darkgray176},
-ymin=0, ymax=1,
-ytick style={color=black}
-]
-\end{groupplot}
+\draw[draw=none,fill=black] (axis cs:1.19513066587216e-05,0) rectangle (axis cs:2.30795235100204e-05,8);
+\draw[draw=none,fill=black] (axis cs:2.30795235100204e-05,0) rectangle (axis cs:3.42077403613191e-05,31);
+\draw[draw=none,fill=black] (axis cs:3.42077403613191e-05,0) rectangle (axis cs:4.53359572126178e-05,114);
+\draw[draw=none,fill=black] (axis cs:4.53359572126178e-05,0) rectangle (axis cs:5.64641740639165e-05,222);
+\draw[draw=none,fill=black] (axis cs:5.64641740639165e-05,0) rectangle (axis cs:6.75923909152152e-05,474);
+\draw[draw=none,fill=black] (axis cs:6.75923909152152e-05,0) rectangle (axis cs:7.8720607766514e-05,645);
+\draw[draw=none,fill=black] (axis cs:7.8720607766514e-05,0) rectangle (axis cs:8.98488246178127e-05,736);
+\draw[draw=none,fill=black] (axis cs:8.98488246178127e-05,0) rectangle (axis cs:0.000100977041469111,759);
+\draw[draw=none,fill=black] (axis cs:0.000100977041469111,0) rectangle (axis cs:0.00011210525832041,681);
+\draw[draw=none,fill=black] (axis cs:0.00011210525832041,0) rectangle (axis cs:0.000123233475171709,532);
+\draw[draw=none,fill=black] (axis cs:0.000123233475171709,0) rectangle (axis cs:0.000134361692023008,346);
+\draw[draw=none,fill=black] (axis cs:0.000134361692023008,0) rectangle (axis cs:0.000145489908874306,208);
+\draw[draw=none,fill=black] (axis cs:0.000145489908874306,0) rectangle (axis cs:0.000156618125725605,112);
+\draw[draw=none,fill=black] (axis cs:0.000156618125725605,0) rectangle (axis cs:0.000167746342576904,81);
+\draw[draw=none,fill=black] (axis cs:0.000167746342576904,0) rectangle (axis cs:0.000178874559428202,30);
+\draw[draw=none,fill=black] (axis cs:0.000178874559428202,0) rectangle (axis cs:0.000190002776279501,12);
+\draw[draw=none,fill=black] (axis cs:0.000190002776279501,0) rectangle (axis cs:0.0002011309931308,6);
+\draw[draw=none,fill=black] (axis cs:0.0002011309931308,0) rectangle (axis cs:0.000212259209982099,1);
+\draw[draw=none,fill=black] (axis cs:0.000212259209982099,0) rectangle (axis cs:0.000223387426833397,1);
+\draw[draw=none,fill=black] (axis cs:0.000223387426833397,0) rectangle (axis cs:0.000234515643684696,1);
+\end{axis}
 
 \end{tikzpicture}
