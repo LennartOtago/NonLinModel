@@ -819,6 +819,15 @@ print('Time to solve for x ' + str(elapsedX/paraSamp))
 
 ##
 plt.close('all')
+def tikzplotlib_fix_ncols(obj):
+    """
+    workaround for matplotlib 3.6 renamed legend's _ncol to _ncols, which breaks tikzplotlib
+    """
+    if hasattr(obj, "_ncols"):
+        obj._ncol = obj._ncols
+    for child in obj.get_children():
+        tikzplotlib_fix_ncols(child)
+
 Sol= Results[2,:]/ (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
 x = np.mean(Results,0 )/ (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
 #xerr = np.sqrt(np.var(Results / (num_mole * S[ind, 0] * f_broad * 1e-4 * scalingConst), 0)) / 2
@@ -883,7 +892,7 @@ ax1.xaxis.set_label_position('bottom')
 ax1.spines[:].set_visible(False)
 #ax2.spines['top'].set_color(pyTCol)
 
-
+tikzplotlib_fix_ncols(fig3)
 fig3.savefig('FirstRecRes.png')#, dpi = dpi)
 
 plt.show()
@@ -894,14 +903,7 @@ plt.show()
 plt.close('all')
 #
 
-def tikzplotlib_fix_ncols(obj):
-    """
-    workaround for matplotlib 3.6 renamed legend's _ncol to _ncols, which breaks tikzplotlib
-    """
-    if hasattr(obj, "_ncols"):
-        obj._ncol = obj._ncols
-    for child in obj.get_children():
-        tikzplotlib_fix_ncols(child)
+
 
 
 DatCol =  'gray' # 'k'"#332288"#"#009E73"
@@ -961,43 +963,43 @@ ax1.spines[:].set_visible(False)
 
 #plt.show()
 #import tikzplotlib
-#tikzplotlib_fix_ncols(fig)
+tikzplotlib_fix_ncols(fig)
 tikzplotlib.save("NonLinRes.tex")
 
 
 ##
-
-x = np.mean(theta) * np.ones((SpecNumLayers,1)) / (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
-
-mpl.rcParams.update(mpl.rcParamsDefault)
-plt.rcParams.update({'font.size': 10})
-plt.rcParams["font.serif"] = "cmr"
-fig3, ax2 = plt.subplots(figsize=set_size(245, fraction=fraction))
- # ax1 and ax2 share y-axis
-line3 = ax2.scatter(y, tang_heights_lin, label = r'data', zorder = 0, marker = '*', color ="#d62728" )#,linewidth = 5
-
-ax1 = ax2.twiny()
-#ax1.scatter(VMR_O3,height_values,marker = 'o', facecolor = 'None', color = "#009E73", label = 'true profile', zorder=1, s =12)#,linewidth = 5)
-ax1.plot(VMR_O3,height_values,marker = 'o', color = 'k', label = 'true profile', zorder=4)#color = "#009E73",linewidth = 5)
-ax1.plot(x, height_values, marker='.', color='k', label='$x_0$', zorder=0, linewidth=0.5)
-
-# edgecolor = [0, 158/255, 115/255]
-#line1 = ax1.plot(VMR_O3,height_values, color = [0, 158/255, 115/255], linewidth = 10, zorder=0)
-
-ax1.set_ylim([heights[minInd-1], heights[maxInd+1]])
-
-ax2.set_xlabel(r'Spectral Ozone radiance in $\frac{W}{m^2 sr} \times \frac{1}{\frac{1}{cm}}$',labelpad=10)# color =dataCol,
-ax2.tick_params(colors = "#d62728", axis = 'x')
-ax2.xaxis.set_ticks_position('top')
-ax2.xaxis.set_label_position('top')
-ax1.xaxis.set_ticks_position('bottom')
-ax1.xaxis.set_label_position('bottom')
-ax1.spines[:].set_visible(False)
-
-ax1.legend()
-fig3.savefig('NonLinRes.png')
-
-plt.show()
+#
+# x = np.mean(theta) * np.ones((SpecNumLayers,1)) / (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
+#
+# mpl.rcParams.update(mpl.rcParamsDefault)
+# plt.rcParams.update({'font.size': 10})
+# plt.rcParams["font.serif"] = "cmr"
+# fig3, ax2 = plt.subplots(figsize=set_size(245, fraction=fraction))
+#  # ax1 and ax2 share y-axis
+# line3 = ax2.scatter(y, tang_heights_lin, label = r'data', zorder = 0, marker = '*', color ="#d62728" )#,linewidth = 5
+#
+# ax1 = ax2.twiny()
+# #ax1.scatter(VMR_O3,height_values,marker = 'o', facecolor = 'None', color = "#009E73", label = 'true profile', zorder=1, s =12)#,linewidth = 5)
+# ax1.plot(VMR_O3,height_values,marker = 'o', color = 'k', label = 'true profile', zorder=4)#color = "#009E73",linewidth = 5)
+# ax1.plot(x, height_values, marker='.', color='k', label='$x_0$', zorder=0, linewidth=0.5)
+#
+# # edgecolor = [0, 158/255, 115/255]
+# #line1 = ax1.plot(VMR_O3,height_values, color = [0, 158/255, 115/255], linewidth = 10, zorder=0)
+#
+# ax1.set_ylim([heights[minInd-1], heights[maxInd+1]])
+#
+# ax2.set_xlabel(r'Spectral Ozone radiance in $\frac{W}{m^2 sr} \times \frac{1}{\frac{1}{cm}}$',labelpad=10)# color =dataCol,
+# ax2.tick_params(colors = "#d62728", axis = 'x')
+# ax2.xaxis.set_ticks_position('top')
+# ax2.xaxis.set_label_position('top')
+# ax1.xaxis.set_ticks_position('bottom')
+# ax1.xaxis.set_label_position('bottom')
+# ax1.spines[:].set_visible(False)
+#
+# ax1.legend()
+# fig3.savefig('NonLinRes.png')
+#
+# plt.show()
 
 
 ##
