@@ -74,8 +74,37 @@ def get_temp_values(height_values):
     return temp_values.reshape((len(height_values),1))
 
 
-def add_noise(Ax, percent):
-    return Ax + np.random.normal(0, percent * np.max(Ax), (len(Ax), 1))
+# def add_noise(Ax, percent):
+#     return Ax + np.random.normal(0, percent * np.max(Ax), (len(Ax), 1))
+
+def add_noise(signal, snr):
+    """
+    Add noise to a signal based on the specified SNR (in percent).
+
+    Parameters:
+        signal: numpy array
+            The original signal.
+        snr_percent: float
+            The desired signal-to-noise ratio in percent.
+
+    Returns:
+        numpy array
+            The signal with added noise.
+    """
+    # Calculate signal power
+    signal_power = np.mean(np.abs(signal) ** 2)
+
+    # Calculate noise power based on SNR (in percent)
+    #noise_power = signal_power / (100 / snr_percent)
+    noise_power = signal_power / snr
+
+    # Generate noise
+    noise = np.random.normal(0, np.sqrt(noise_power), signal.shape)
+
+    # Add noise to the signal
+    noisy_signal = signal + noise
+
+    return noisy_signal, 1/noise_power
 
 
 def calcNonLin(A_lin, pressure_values, LineIntScal, temp_values, theta, AscalConstKmToCm, SpecNumLayers, SpecNumMeas ):
