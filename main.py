@@ -281,12 +281,20 @@ print("Condition Number A^T A: " + str(orderOfMagnitude(cond_ATA)))
 #theta[-1] = 0
 sim_Ax = np.matmul(sim_A, theta)
 
+
+
+
 #convolve measurements and add noise
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
 
 y = np.loadtxt('NonLinDataY.txt').reshape((SpecNumMeas,1))
 
+# fig3, ax1 = plt.subplots()
+# ax1.plot(sim_Ax, tang_heights_lin)
+# ax1.scatter(y, tang_heights_lin)
+# ax1.plot(y, tang_heights_lin)
+# plt.show()
 
 sim_ATy = np.matmul(sim_A.T, y)
 
