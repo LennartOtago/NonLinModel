@@ -286,9 +286,10 @@ sim_Ax = np.matmul(sim_A, theta)
 
 #convolve measurements and add noise
 #y = add_noise(Ax, 0.01)
+y, gamma = add_noise(sim_Ax, 40)
 #y[y<=0] = 0
 
-y = np.loadtxt('NonLinDataY.txt').reshape((SpecNumMeas,1))
+#y = np.loadtxt('NonLinDataY.txt').reshape((SpecNumMeas,1))
 
 # fig3, ax1 = plt.subplots()
 # ax1.plot(sim_Ax, tang_heights_lin)
@@ -298,8 +299,12 @@ y = np.loadtxt('NonLinDataY.txt').reshape((SpecNumMeas,1))
 
 sim_ATy = np.matmul(sim_A.T, y)
 
-#np.savetxt('NonLinDataY.txt', y, header = 'Data y including noise', fmt = '%.15f')
+np.savetxt('NonLinDataY.txt', y, header = 'Data y including noise', fmt = '%.15f')
 np.savetxt('NonLinForWardMatrix.txt', sim_A, header = 'Forward Matrix A', fmt = '%.15f', delimiter= '\t')
+np.savetxt('height_values.txt', height_values, fmt = '%.15f', delimiter= '\t')
+np.savetxt('tan_height_values.txt', tang_heights_lin, fmt = '%.15f', delimiter= '\t')
+np.savetxt('pressure_values.txt', pressure_values, fmt = '%.15f', delimiter= '\t')
+np.savetxt('VMR_O3.txt', VMR_O3, fmt = '%.15f', delimiter= '\t')
 
 print('bla')
 
@@ -433,7 +438,7 @@ rate = f(first_ATy, y, B_inv_A_trans_y0) / 2 + betaG + betaD * lambda0
 shape = SpecNumMeas/2 + alphaD + alphaG
 
 f_new = f(first_ATy, y,  B_inv_A_trans_y0)
-wLam = 0.7e3
+wLam = 6e4#0.7e3
 
 startTime = time.time()
 lambdas, gammas, k = MHwG(number_samples, burnIn, y, L, first_ATA, SpecNumMeas, SpecNumLayers, B_inv_A_trans_y0, first_ATy, wLam, lambda0, gamma0, tol, f_0_1, f_0_2, f_0_3, g_0_1, g_0_2, g_0_3)
@@ -661,6 +666,9 @@ for p in range(1,paraSamp+1):
 elapsedX = time.time() - startTimeX
 print('Time to solve for x ' + str(elapsedX/paraSamp))
 
+np.savetxt('O3Res.txt', Results/(num_mole * S[ind, 0] * f_broad * 1e-4 * scalingConst), fmt = '%.15f', delimiter= '\t')
+
+
 ###
 plt.close('all')
 
@@ -683,8 +691,8 @@ ax1.plot(VMR_O3,height_values,marker = 'o',markerfacecolor = 'None', color = Tru
 
 for n in range(0,5):#,paraSamp,15):
     Sol = Results[n, :] / (num_mole * S[ind, 0] * f_broad * 1e-4 * scalingConst)
-    ax1.plot(Sol,height_values,marker= '+',label = r'$\bm{x}_{'+str(n)+'}$', zorder = 1, linewidth = 0.5, markersize = 5)
-
+    ax1.plot(Sol,height_values,marker= '+',label = r'$x_{'+str(n)+'}$', zorder = 1, linewidth = 0.5, markersize = 5)
+    #label = r'$\bm{x}_{'+str(n)+'}$'
 ax1.set_xlabel(r'Ozone volume mixing ratio ')
 #multicolor_ylabel(ax1,('(Tangent)','Height in km'),('k', dataCol),axis='y')
 ax2.set_ylabel('(Tangent) Height in km')
@@ -696,7 +704,7 @@ legend = ax1.legend(handles = [handles[1], handles[2],handles[3],handles[4],hand
 ax1.set_ylim([heights[minInd-1], heights[maxInd+1]])
 
 # turn on when saving as .tex
-ax2.set_xlabel(r'Spectral radiance in $\frac{\text{W cm}}{\text{m}^2 \text{ sr}} $',labelpad=10)# color =dataCol,
+#ax2.set_xlabel(r'Spectral radiance in $\frac{\text{W cm}}{\text{m}^2 \text{ sr}} $',labelpad=10)# color =dataCol,
 ax2.tick_params(colors = DatCol, axis = 'x')
 ax2.xaxis.set_ticks_position('top')
 ax2.xaxis.set_label_position('top')
@@ -704,9 +712,9 @@ ax1.xaxis.set_ticks_position('bottom')
 ax1.xaxis.set_label_position('bottom')
 ax1.spines[:].set_visible(False)
 
-#plt.show()
+plt.show()
 #import tikzplotlib
-tikzplotlib_fix_ncols(fig)
-tikzplotlib.save("NonLinRes.tex")
+#tikzplotlib_fix_ncols(fig)
+#tikzplotlib.save("NonLinRes.tex")
 
 print('bla')
