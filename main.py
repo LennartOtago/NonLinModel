@@ -286,7 +286,7 @@ sim_Ax = np.matmul(sim_A, theta)
 
 #convolve measurements and add noise
 #y = add_noise(Ax, 0.01)
-y, gamma = add_noise(sim_Ax, 40)
+y, gamma = add_noise(sim_Ax, 60)
 #y[y<=0] = 0
 
 #y = np.loadtxt('NonLinDataY.txt').reshape((SpecNumMeas,1))
@@ -615,7 +615,7 @@ fig.savefig('f_and_g_paper.pgf', bbox_inches='tight', dpi = 300)
 '''find ozone profile and update non Linear A matrix'''
 
 #draw paramter samples
-paraSamp = 100#n_bins
+paraSamp = 150#n_bins
 Results = np.zeros((paraSamp+1,len(theta)))
 
 Results[0, :] = np.mean(VMR_O3) * num_mole  * scalingConst * f_broad * 1e-4 * S[ind,0] * np.ones((SpecNumLayers))
