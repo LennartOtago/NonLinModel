@@ -286,7 +286,7 @@ sim_Ax = np.matmul(sim_A, theta)
 
 #convolve measurements and add noise
 #y = add_noise(Ax, 0.01)
-y, gamma = add_noise(sim_Ax, 60)
+y, gamma = add_noise(sim_Ax, 10)
 #y[y<=0] = 0
 
 #y = np.loadtxt('NonLinDataY.txt').reshape((SpecNumMeas,1))
